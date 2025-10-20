@@ -6,9 +6,9 @@
 --track@align_x:水平揃え,-100,100,0,0.001
 --track@align_y:垂直揃え,-100,100,0,0.001
 --track@line:ライン幅,0,4000,6,0.01
---color@color:色,0xffffff
---color@color_back:背景色,0x000000
---track@alpha_back:背景透明度,0,100,100,0.01
+--color@color:エッジ色,0xffffff
+--color@color_back:フィル色,0xffffff
+--track@alpha_back:アルファ,0,255,255,1
 --track@head_len:矢じり長さ(幅に対する%),0,100,30,0.01
 --track@head_width:矢じり幅(高さに対する%),0,100,100,0.01
 --track@shaft:軸太さ(高さに対する%),0,100,30,0.01
@@ -148,7 +148,7 @@ align_y  = math.min(math.max(align_y / 100, -1), 1);
 line    = math.max(math.floor(0.5 + line), 0);
 color       = math.floor(0.5 + color) % 2 ^ 24;
 color_back  = math.floor(0.5 + color_back) % 2 ^ 24;
-alpha_back  = math.min(math.max(1 - alpha_back / 100, 0), 1);
+alpha_back  = math.min(math.max(alpha_back / 255, 0), 1);
 
 -- constrain shape ratios
 local head_ratio  = math.min(math.max(head_len   / 100, 0), 1);  -- 0..1 of width
