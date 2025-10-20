@@ -40,26 +40,16 @@ static float sdBox(float2 p, float2 b)
 	return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
 }
 
-// Signed distance to isosceles triangle oriented along +Y.
-// q = (base_half_width_x, height_y); base centered at (0,0), apex at (0, q.y)
-static float sdIsoscelesTr(float2 p, float2 q)
+// Half-plane SDF-like for a right-facing isosceles triangle with
+// apex at x=1, base centered at x=1-L with half-height B in normalized space.
+// Returns negative inside, positive outside (not exact Euclidean distance).
+static float triRightHalfPlane(float2 p, float B, float L)
 {
-	p.x = abs(p.x);
-	float2 a = p - q * clamp(dot(p, q) / dot(q, q), 0.0, 1.0);
-	float2 b = p - q * float2(clamp(p.x / q.x, 0.0, 1.0), 1.0);
-	float s = -sign(q.y);
-	float2 d = min(float2(dot(a, a), s * (p.x * q.y - p.y * q.x)),
-				  float2(dot(b, b), s * (p.y - q.y)));
-	return -sqrt(d.x) * sign(d.y);
-}
-
-// Arrowhead pointing to +X; length = L, base half = B.
-// Expects p to be in a local frame where the base center is at (0,0) and apex at (L,0).
-static float sdArrowHeadRight(float2 p, float B, float L)
-{
-	// swap axes to reuse upward triangle SDF: (x,y) => (y,x)
-	float2 pp = float2(p.y, p.x);
-	return sdIsoscelesTr(pp, float2(B, L));
+	L = max(L, 1e-5);
+	float k = B / L;                 // slope of the triangle edge envelope
+	float v = max((1.0 - L) - p.x,   // to the right of base line
+	             abs(p.y) - k * (1.0 - p.x)); // inside slanted edges
+	return v;
 }
 
 float4 carve(float4 pos : SV_Position) : SV_Target
@@ -90,17 +80,16 @@ float4 carve(float4 pos : SV_Position) : SV_Target
 		sd = sdBox(p - center, halfxy);
 	}
 
-	// Right head: base centered at x = 1 - hn, apex at x = 1
+	// Right head: base at x = 1 - hn, apex at x = 1 (right-facing)
 	{
-		float2 pr = p - float2(1.0 - hn, 0.0);
-		float sdr = sdArrowHeadRight(pr, hb, hn);
+		float sdr = triRightHalfPlane(p, hb, hn);
 		sd = min(sd, sdr);
 	}
 
 	// Left head if double
 	if (dbl) {
-		float2 pl = float2(-p.x, p.y) - float2(1.0 - hn, 0.0);
-		float sdl = sdArrowHeadRight(pl, hb, hn);
+		float2 pm = float2(-p.x, p.y);
+		float sdl = triRightHalfPlane(pm, hb, hn);
 		sd = min(sd, sdl);
 	}
 
